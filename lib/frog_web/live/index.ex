@@ -21,15 +21,15 @@ defmodule FrogWeb.Index do
         <tr :for={row <- @the_table}>
           <td><%= row.count  %></td>
           <td>
-            <svg width="100" height="20" :for={ {bucket, index} <- Enum.with_index(row.time_buckets) }>
-              <rect width="5" height={ bucket * 20 } x={ index * 5 } y={ 20 - bucket * 20 } style="fill:rgb(255,0,0);stroke-width:0" />
+            <svg width="100" height="20">
+              <rect :for={ {bucket, index} <- Enum.with_index(row.time_buckets) } width="5" height={ bucket * 20 } x={ index * 5 } y={ 20 - bucket * 20 } style="fill:rgb(255,0,0);stroke-width:0" />
             </svg>
           </td>
-          <td :for={ persona <- row.personas }>
-            <span><%= persona %></span>
+          <td>
+            <span :for={ persona <- row.personas }><%= persona %></span>
           </td>
-          <td :for={ action <- row.actions }>
-            <span><%= action %></span>
+          <td>
+            <span :for={ action <- row.actions }><%= action %></span>
           </td>
           <td><%= row.type %></td>
           <td><pre><%= row.item %></pre></td>
@@ -41,7 +41,7 @@ defmodule FrogWeb.Index do
 
   @impl true
   def mount(_params, _blah, socket) do
-    start = :os.system_time(:seconds) - 60 * 60 * 24 * 2
+    start = :os.system_time(:seconds) - 60 * 60 * 1
 
     query =
       from ew in Frog.ErrorsWarnings,
