@@ -118,3 +118,8 @@
   0% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+.main-errors-warnings-table span {
+    word-break: keep-all;
+    display:block;
+}

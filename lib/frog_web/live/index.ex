@@ -1,12 +1,44 @@
 defmodule FrogWeb.Index do
   use Phoenix.LiveView
   import Ecto.Query, only: [from: 2]
+  import Phoenix.HTML.Form
+  alias FrogWeb.Router.Helpers, as: Routes
 
   @impl true
   def render(assigns) do
     ~H"""
+    <%= render_form(assigns) %>
+    <%= render_table(assigns) %>
+    """
+  end
 
-    <table>
+  def render_form(assigns) do
+    ~H"""
+    <.form :let={f} for={:the_form} phx-submit="form_submit">
+      <%= label(f, :from, "Interval") %>
+      <%= select(
+        f,
+        :from,
+        [
+          {"15 minutes", 60 * 15},
+          {"1 hour", 60 * 60},
+          {"2 hours", 60 * 60 * 2},
+          {"3 hours", 60 * 60 * 3},
+          {"6 hours", 60 * 60 * 6},
+          {"12 hours", 60 * 60 * 12},
+          {"24 hours", 60 * 60 * 24},
+          {"2 days", 60 * 60 * 24 * 2}
+        ],
+        value: @form_data["from"]
+      ) %>
+      <%= submit("Go") %>
+    </.form>
+    """
+  end
+
+  def render_table(assigns) do
+    ~H"""
+    <table class="main-errors-warnings-table">
       <thead>
         <tr>
           <th>Count</th>
@@ -19,17 +51,24 @@ defmodule FrogWeb.Index do
       </thead>
       <tbody>
         <tr :for={row <- @the_table}>
-          <td><%= row.count  %></td>
+          <td><%= row.count %></td>
           <td>
             <svg width="100" height="20">
-              <rect :for={ {bucket, index} <- Enum.with_index(row.time_buckets) } width="5" height={ bucket * 20 } x={ index * 5 } y={ 20 - bucket * 20 } style="fill:rgb(255,0,0);stroke-width:0" />
+              <rect
+                :for={{bucket, index} <- Enum.with_index(row.time_buckets)}
+                width="5"
+                height={bucket * 20}
+                x={index * 5}
+                y={20 - bucket * 20}
+                style="fill:rgb(255,0,0);stroke-width:0"
+              />
             </svg>
           </td>
           <td>
-            <span :for={ persona <- row.personas }><%= persona %></span>
+            <span :for={persona <- row.personas}><%= persona %></span>
           </td>
           <td>
-            <span :for={ action <- row.actions }><%= action %></span>
+            <span :for={action <- row.actions}><%= action %></span>
           </td>
           <td><%= row.type %></td>
           <td><pre><%= row.item %></pre></td>
@@ -40,8 +79,16 @@ defmodule FrogWeb.Index do
   end
 
   @impl true
-  def mount(_params, _blah, socket) do
-    start = :os.system_time(:seconds) - 60 * 60 * 1
+  def handle_params(params, _blah, socket) do
+    params |> IO.inspect()
+
+    from =
+      case params do
+        %{"from" => from} -> from |> String.to_integer()
+        _ -> 60 * 60 * 1
+      end
+
+    start = :os.system_time(:seconds) - from
 
     query =
       from ew in Frog.ErrorsWarnings,
@@ -173,8 +220,20 @@ defmodule FrogWeb.Index do
       end)
       |> Enum.sort_by(& &1.count, :desc)
 
-    socket = socket |> assign(:the_table, unique_ews)
-    {:ok, socket}
+    form_data = %{
+      "from" => from
+    }
+
+    socket =
+      socket
+      |> assign(:the_table, unique_ews)
+      |> assign(:form_data, form_data)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("form_submit", params, socket) do
+    {:noreply, socket |> push_patch(to: Routes.live_path(socket, __MODULE__, params["the_form"]))}
   end
 
   defp normalize(list) do
