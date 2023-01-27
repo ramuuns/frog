@@ -71,7 +71,14 @@ defmodule FrogWeb.Index do
             <span :for={action <- row.actions}><%= action %></span>
           </td>
           <td><%= row.type %></td>
-          <td><pre><%= row.item %></pre></td>
+          <td>
+            <.link navigate={
+              Routes.live_path(@socket, FrogWeb.Event, row.event_id, row.type, row.index)
+            }>
+              View event
+            </.link>
+            <pre><%= row.item %></pre>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -103,6 +110,13 @@ defmodule FrogWeb.Index do
         }
 
     unique_ews = Frog.Repo.all(query)
+
+    event_ids =
+      unique_ews
+      |> Enum.reduce(MapSet.new(), fn %{event_id: event_id}, ret ->
+        ret |> MapSet.put(event_id)
+      end)
+      |> MapSet.to_list()
 
     unique_errs =
       unique_ews
@@ -203,10 +217,20 @@ defmodule FrogWeb.Index do
         })
       end)
 
+    query =
+      from e in Frog.Events,
+        where: e.id in ^event_ids
+
+    events_by_id =
+      Frog.Repo.all(query)
+      |> Enum.reduce(%{}, fn %{id: id, event: event}, ret ->
+        ret |> Map.put(id, Jason.decode!(event))
+      end)
+
     unique_ews =
       unique_ews
       |> Enum.map(fn
-        %{type: type, key: key} = ew ->
+        %{type: type, key: key, event_id: id} = ew ->
           %{
             buckets: buckets,
             personas: personas,
@@ -217,6 +241,14 @@ defmodule FrogWeb.Index do
           |> Map.put(:time_buckets, buckets |> Tuple.to_list() |> normalize)
           |> Map.put(:personas, personas |> MapSet.to_list() |> Enum.sort())
           |> Map.put(:actions, actions |> MapSet.to_list() |> Enum.sort())
+          |> Map.put(
+            :index,
+            events_by_id
+            |> Map.get(id)
+            |> Map.get("tuning")
+            |> Map.get("#{type}s")
+            |> get_index(key, 0)
+          )
       end)
       |> Enum.sort_by(& &1.count, :desc)
 
@@ -234,6 +266,18 @@ defmodule FrogWeb.Index do
 
   def handle_event("form_submit", params, socket) do
     {:noreply, socket |> push_patch(to: Routes.live_path(socket, __MODULE__, params["the_form"]))}
+  end
+
+  defp get_index([], _, _), do: -1
+
+  defp get_index([trace | rest], what, idx) do
+    [line | _] = String.split(trace, "\n", parts: 2)
+
+    if line == what do
+      idx
+    else
+      get_index(rest, what, idx + 1)
+    end
   end
 
   defp normalize(list) do
