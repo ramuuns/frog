@@ -119,13 +119,6 @@ defmodule FrogWeb.Index do
 
     unique_ews = Frog.Repo.all(query)
 
-    event_ids =
-      unique_ews
-      |> Enum.reduce(MapSet.new(), fn %{event_id: event_id}, ret ->
-        ret |> MapSet.put(event_id)
-      end)
-      |> MapSet.to_list()
-
     unique_errs =
       unique_ews
       |> Enum.filter(fn
