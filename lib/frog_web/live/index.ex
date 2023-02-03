@@ -228,14 +228,10 @@ defmodule FrogWeb.Index do
         })
       end)
 
-    query =
-      from e in Frog.Events,
-        where: e.id in ^event_ids
-
     unique_ews =
       unique_ews
       |> Enum.map(fn
-        %{type: type, key: key, event_id: id} = ew ->
+        %{type: type, key: key} = ew ->
           %{
             buckets: buckets,
             personas: personas,

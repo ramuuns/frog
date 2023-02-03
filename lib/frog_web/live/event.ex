@@ -1,8 +1,6 @@
 defmodule FrogWeb.Event do
   use Phoenix.LiveView
   import Ecto.Query, only: [from: 2]
-  import Phoenix.HTML.Form
-  alias FrogWeb.Router.Helpers, as: Routes
 
   @impl true
   def render(assigns) do
