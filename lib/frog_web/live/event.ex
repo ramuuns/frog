@@ -21,16 +21,23 @@ defmodule FrogWeb.Event do
         where: e.id == ^params["id"],
         select: e.event
 
-    event = Frog.Repo.one(query) |> Jason.decode!() |> IO.inspect()
+    event = Frog.Repo.one(query)
+
+    query =
+      from ew in Frog.ErrorsWarnings,
+        where:
+          ew.event_id == ^params["id"] and ew.key == ^params["index"] and
+            ew.type == ^params["type"],
+        select: ew.item,
+        limit: 1
+
+    trace = Frog.Repo.one(query)
 
     socket =
       socket
       |> assign(:type, params["type"])
-      |> assign(
-        :trace,
-        Enum.fetch!(event["tuning"]["#{params["type"]}s"], params["index"] |> String.to_integer())
-      )
-      |> assign(:event, Jason.encode!(event, pretty: true))
+      |> assign(:trace, trace)
+      |> assign(:event, Jason.Formatter.pretty_print(event))
 
     {:noreply, socket}
   end

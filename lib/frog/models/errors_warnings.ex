@@ -10,6 +10,7 @@ defmodule Frog.ErrorsWarnings do
     field :the_request, :string
     field :type, :string
     field :key, :string
+    field :cnt, :integer
     field :item, :string
   end
 end

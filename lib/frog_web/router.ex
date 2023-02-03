@@ -19,6 +19,7 @@ defmodule FrogWeb.Router do
 
     live "/", Index
     live "/event/:id/:type/:index", Event
+    live "/events/:id/:type/:index", Events
   end
 
   # Other scopes may use custom stacks.

@@ -73,10 +73,18 @@ defmodule FrogWeb.Index do
           <td><%= row.type %></td>
           <td>
             <.link navigate={
-              Routes.live_path(@socket, FrogWeb.Event, row.event_id, row.type, row.index)
+              Routes.live_path(@socket, FrogWeb.Event, row.event_id, row.type, row.key)
             }>
               View event
             </.link>
+            <.link navigate={
+              Routes.live_path(@socket, FrogWeb.Events, row.event_id, row.type, row.key, %{
+                "from" => @form_data["from"]
+              })
+            }>
+              View all events
+            </.link>
+
             <pre><%= row.item %></pre>
           </td>
         </tr>
@@ -102,7 +110,7 @@ defmodule FrogWeb.Index do
         where: ew.epoch > ^start,
         group_by: [ew.key, ew.type],
         select: %{
-          count: count(ew.event_id),
+          count: sum(ew.cnt),
           key: ew.key,
           type: ew.type,
           item: ew.item,
@@ -140,6 +148,7 @@ defmodule FrogWeb.Index do
         select: %{
           type: ew.type,
           key: ew.key,
+          cnt: ew.cnt,
           epoch: ew.epoch,
           persona: ew.persona,
           action: ew.action
@@ -151,13 +160,14 @@ defmodule FrogWeb.Index do
         select: %{
           type: ew.type,
           key: ew.key,
+          cnt: ew.cnt,
           epoch: ew.epoch,
           persona: ew.persona,
           action: ew.action
         },
         union: ^w_query
 
-    ew_times = Frog.Repo.all(query) |> IO.inspect()
+    ew_times = Frog.Repo.all(query)
 
     the_end = :os.system_time(:seconds)
 
@@ -169,6 +179,7 @@ defmodule FrogWeb.Index do
                                action: action,
                                persona: persona,
                                key: key,
+                               cnt: cnt,
                                type: type,
                                epoch: epoch
                              },
@@ -207,7 +218,7 @@ defmodule FrogWeb.Index do
           })
 
         bucket = div(epoch - start, bucket_size)
-        buckets = buckets |> put_elem(bucket, elem(buckets, bucket) + 1)
+        buckets = buckets |> put_elem(bucket, elem(buckets, bucket) + cnt)
 
         ret
         |> Map.put({key, type}, %{
@@ -220,12 +231,6 @@ defmodule FrogWeb.Index do
     query =
       from e in Frog.Events,
         where: e.id in ^event_ids
-
-    events_by_id =
-      Frog.Repo.all(query)
-      |> Enum.reduce(%{}, fn %{id: id, event: event}, ret ->
-        ret |> Map.put(id, Jason.decode!(event))
-      end)
 
     unique_ews =
       unique_ews
@@ -241,14 +246,6 @@ defmodule FrogWeb.Index do
           |> Map.put(:time_buckets, buckets |> Tuple.to_list() |> normalize)
           |> Map.put(:personas, personas |> MapSet.to_list() |> Enum.sort())
           |> Map.put(:actions, actions |> MapSet.to_list() |> Enum.sort())
-          |> Map.put(
-            :index,
-            events_by_id
-            |> Map.get(id)
-            |> Map.get("tuning")
-            |> Map.get("#{type}s")
-            |> get_index(key, 0)
-          )
       end)
       |> Enum.sort_by(& &1.count, :desc)
 
@@ -264,20 +261,9 @@ defmodule FrogWeb.Index do
     {:noreply, socket}
   end
 
+  @impl true
   def handle_event("form_submit", params, socket) do
     {:noreply, socket |> push_patch(to: Routes.live_path(socket, __MODULE__, params["the_form"]))}
-  end
-
-  defp get_index([], _, _), do: -1
-
-  defp get_index([trace | rest], what, idx) do
-    [line | _] = String.split(trace, "\n", parts: 2)
-
-    if line == what do
-      idx
-    else
-      get_index(rest, what, idx + 1)
-    end
   end
 
   defp normalize(list) do
