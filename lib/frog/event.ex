@@ -44,7 +44,7 @@ defmodule Frog.Event do
   end
 
   def set_action(pid, action) do
-    GenServer.cast(pid, {:set_action, action |> String.replace(".", "-")})
+    GenServer.cast(pid, {:set_action, action |> to_string() |> String.replace(".", "-")})
   end
 
   def add_error(pid, error) do
