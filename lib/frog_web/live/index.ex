@@ -95,8 +95,6 @@ defmodule FrogWeb.Index do
 
   @impl true
   def handle_params(params, _blah, socket) do
-    params |> IO.inspect()
-
     from =
       case params do
         %{"from" => from} -> from |> String.to_integer()

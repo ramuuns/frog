@@ -8,7 +8,9 @@
 import Config
 
 config :frog,
-  ecto_repos: [Frog.Repo]
+  ecto_repos: [Frog.Repo],
+  collector_port: System.get_env("FROG_EVENTCOLLECTOR_PORT"),
+  collector_host: System.get_env("FROG_EVENTCOLLECTOR_HOST")
 
 # Configures the endpoint
 config :frog, FrogWeb.Endpoint,

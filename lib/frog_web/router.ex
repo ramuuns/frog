@@ -1,6 +1,17 @@
 defmodule FrogWeb.Router do
   use FrogWeb, :router
 
+  def set_action(conn, _opts) do
+    case conn.private do
+      %{event_pid: event_pid, phoenix_live_view: {action, _, _}} ->
+        Frog.Event.set_action(event_pid, action)
+        conn
+
+      _ ->
+        conn
+    end
+  end
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,6 +19,8 @@ defmodule FrogWeb.Router do
     plug :put_root_layout, {FrogWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+
+    plug :set_action
   end
 
   pipeline :api do

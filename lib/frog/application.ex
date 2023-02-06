@@ -15,7 +15,8 @@ defmodule Frog.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: Frog.PubSub},
       # Start the Endpoint (http/https)
-      FrogWeb.Endpoint
+      FrogWeb.Endpoint,
+      Frog.WebsocketEvents
       # Start a worker by calling: Frog.Worker.start_link(arg)
       # {Frog.Worker, arg}
     ]
