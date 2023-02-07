@@ -3,11 +3,11 @@ FROM elixir:1.14.3
 WORKDIR /var/www/frog
 ADD mix* ./
 RUN mix do local.hex --force, local.rebar --force
-RUN mix deps.get
-RUN mix deps.compile
-ADD test test
+RUN mix deps.get --only prod
 ADD config config
-ADD lib lib
+RUN MIX_ENV=prod mix deps.compile
 ADD assets assets
-RUN mix compile
-ENTRYPOINT mix phx.server
+RUN MIX_ENV=prod mix assets.deploy
+ADD lib lib
+RUN MIX_ENV=prod mix compile
+ENTRYPOINT MIX_ENV=prod mix phx.server
