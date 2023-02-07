@@ -101,7 +101,7 @@ defmodule FrogWeb.Endpoint do
         the_request: the_request
       })
 
-    case conn.query_string do
+    case conn.request_path do
       "/assets/" <> _ ->
         Frog.Event.set_action(pid, "static")
 
