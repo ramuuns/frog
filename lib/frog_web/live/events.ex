@@ -107,9 +107,9 @@ defmodule FrogWeb.Events do
          Routes.live_path(
            socket,
            __MODULE__,
-           socket.event_id,
-           socket.type,
-           socket.index,
+           socket.assigns.event_id,
+           socket.assigns.type,
+           socket.assigns.index,
            params["the_form"]
          )
      )}
