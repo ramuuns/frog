@@ -89,7 +89,7 @@ defmodule FrogWeb.Events do
       socket
       |> assign(:type, params["type"])
       |> assign(:index, params["index"])
-      |> assign(:event_id, params["event_id"])
+      |> assign(:event_id, params["id"])
       |> assign(:key, key)
       |> assign(:events_by_id, events_by_id)
       |> assign(:events, events)
