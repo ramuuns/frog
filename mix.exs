@@ -35,6 +35,7 @@ defmodule Frog.MixProject do
     [
       {:phoenix, "~> 1.6.15"},
       {:phoenix_ecto, "~> 4.4"},
+      {:phoenix_events, ">= 0.1.2"},
       {:ecto_sql, "~> 3.6"},
       {:ecto_sqlite3, ">= 0.0.0"},
       {:phoenix_html, "~> 3.0"},

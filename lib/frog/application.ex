@@ -16,7 +16,23 @@ defmodule Frog.Application do
       {Phoenix.PubSub, name: Frog.PubSub},
       # Start the Endpoint (http/https)
       FrogWeb.Endpoint,
-      Frog.WebsocketEvents
+      %{
+        id: PhoenixEvents,
+        start:
+          {PhoenixEvents, :start_link,
+           [
+             %{
+               persona: "frog",
+               send_events: true,
+               log_live_view: true,
+               collector_host: Application.fetch_env!(:frog, :collector_host),
+               collector_port: Application.fetch_env!(:frog, :collector_port),
+               log_queries: true,
+               queries_prefix: [:frog, :repo]
+             },
+             []
+           ]}
+      }
       # Start a worker by calling: Frog.Worker.start_link(arg)
       # {Frog.Worker, arg}
     ]

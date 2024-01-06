@@ -1,15 +1,50 @@
 defmodule FrogWeb.Router do
   use FrogWeb, :router
 
-  def set_action(conn, _opts) do
-    case conn.private do
-      %{event_pid: event_pid, phoenix_live_view: {action, _, _}} ->
-        Frog.Event.set_action(event_pid, action)
-        conn
+  use Plug.ErrorHandler
+
+  @impl Plug.ErrorHandler
+  def handle_errors(conn, %{kind: kind, reason: reason, stack: stack}) do
+    case reason do
+      %Phoenix.Router.NoRouteError{} ->
+        # this is a 404, so let's just ignore it
+        :ok
 
       _ ->
-        conn
+        event_pid = PhoenixEvents.pid_to_event(self())
+
+        if event_pid != nil do
+          trace = Exception.format(kind, reason, stack)
+          PhoenixEvents.Event.add_error(event_pid, trace)
+        end
     end
+
+    conn
+  end
+
+  def set_action(conn, _opts) do
+    event_pid = PhoenixEvents.pid_to_event(self())
+
+    if event_pid != nil do
+      case conn.private do
+        %{phoenix_live_view: {action, _, _}} ->
+          PhoenixEvents.Event.set_action(event_pid, action)
+
+        %{phoenix_router: router} ->
+          case Phoenix.Router.route_info(router, conn.method, conn.request_path, conn.host) do
+            %{plug: plug} ->
+              PhoenixEvents.Event.set_action(event_pid, plug)
+
+            _ ->
+              :ok
+          end
+
+        _ ->
+          :ok
+      end
+    end
+
+    conn
   end
 
   pipeline :browser do
