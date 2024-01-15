@@ -208,7 +208,7 @@ defmodule FrogWeb.Index do
             actions: MapSet.new()
           })
 
-        bucket = div(epoch - start, bucket_size)
+        bucket = Enum.min([div(epoch - start, bucket_size), 19])
         buckets = buckets |> put_elem(bucket, elem(buckets, bucket) + cnt)
 
         ret
