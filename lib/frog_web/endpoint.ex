@@ -38,7 +38,6 @@ defmodule FrogWeb.Endpoint do
     param_key: "request_logger",
     cookie_key: "request_logger"
 
-
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
@@ -48,5 +47,4 @@ defmodule FrogWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug FrogWeb.Router
-
 end

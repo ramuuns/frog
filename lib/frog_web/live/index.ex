@@ -1,6 +1,6 @@
 defmodule FrogWeb.Index do
   use Phoenix.LiveView
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [from: 2, dynamic: 2]
   import Phoenix.HTML.Form
   alias FrogWeb.Router.Helpers, as: Routes
 
@@ -14,7 +14,8 @@ defmodule FrogWeb.Index do
 
   def render_form(assigns) do
     ~H"""
-    <.form :let={f} for={:the_form} phx-submit="form_submit">
+    <.form :let={f} for={%{}} as={:the_form}  phx-submit="form_submit" class="flex">
+      <div class="form-field">
       <%= label(f, :from, "Interval") %>
       <%= select(
         f,
@@ -27,11 +28,40 @@ defmodule FrogWeb.Index do
           {"6 hours", 60 * 60 * 6},
           {"12 hours", 60 * 60 * 12},
           {"24 hours", 60 * 60 * 24},
-          {"2 days", 60 * 60 * 24 * 2}
+          {"2 days", 60 * 60 * 24 * 2},
+          {"1 week", 60 * 60 * 24 * 7},
+          {"2 weeks", 60 * 60 * 24 * 14}
         ],
         value: @form_data["from"]
-      ) %>
+    ) %>
+        </div>
+        <div class="form-field">
+      <%= label(f, :persona, "Persona") %>
+      <%= select(
+        f,
+        :persona,
+        [
+          {"All", "_all"}
+          | @form_personas
+        ],
+        value: @form_data["persona"]
+        ) %>
+    </div>
+    <div class="form-field">
+      <%= label(f, :action, "Action") %>
+      <%= select(
+        f,
+        :action,
+        [
+          {"All", "_all"}
+          | @form_actions
+        ],
+        value: @form_data["action"]
+        ) %>
+    </div>
+    <div class="form-field">
       <%= submit("Go") %>
+    </div>
     </.form>
     """
   end
@@ -53,6 +83,7 @@ defmodule FrogWeb.Index do
         <tr :for={row <- @the_table}>
           <td><%= row.count %></td>
           <td>
+            <span data-title={ first_and_last(row) }>
             <svg width="100" height="20">
               <rect
                 :for={{bucket, index} <- Enum.with_index(row.time_buckets)}
@@ -62,7 +93,8 @@ defmodule FrogWeb.Index do
                 y={20 - bucket * 20}
                 style="fill:rgb(255,0,0);stroke-width:0"
               />
-            </svg>
+                  </svg>
+                  </span>
           </td>
           <td>
             <span :for={persona <- row.personas}><%= persona %></span>
@@ -93,26 +125,44 @@ defmodule FrogWeb.Index do
     """
   end
 
+  def first_and_last(%{min_epoch: min, max_epoch: max}) do
+    "First: #{min |> DateTime.from_unix!() |> DateTime.to_string()}, Last: #{max |> DateTime.from_unix!() |> DateTime.to_string()}"
+  end
+
   @impl true
   def handle_params(params, _blah, socket) do
-    from =
+    start_from =
       case params do
         %{"from" => from} -> from |> String.to_integer()
         _ -> 60 * 60 * 1
       end
 
-    start = :os.system_time(:seconds) - from
+    start = :os.system_time(:seconds) - start_from
+
+    filters = dynamic([ew], ew.epoch > ^start)
+
+    filters =
+      params
+      |> Enum.reduce(filters, fn
+        {"persona", "_all"}, filters -> filters
+        {"persona", value}, filters -> dynamic([ew], ^filters and ew.persona == ^value)
+        {"action", "_all"}, filters -> filters
+        {"action", value}, filters -> dynamic([ew], ^filters and ew.action == ^value)
+        _, filters -> filters
+      end)
 
     query =
       from ew in Frog.ErrorsWarnings,
-        where: ew.epoch > ^start,
+        where: ^filters,
         group_by: [ew.key, ew.type],
         select: %{
           count: sum(ew.cnt),
           key: ew.key,
           type: ew.type,
           item: ew.item,
-          event_id: ew.event_id
+          event_id: ew.event_id,
+          min_epoch: min(ew.epoch),
+          max_epoch: max(ew.epoch)
         }
 
     unique_ews = Frog.Repo.all(query)
@@ -135,7 +185,8 @@ defmodule FrogWeb.Index do
 
     w_query =
       from ew in Frog.ErrorsWarnings,
-        where: ew.type == "warning" and ew.key in ^unique_warns and ew.epoch > ^start,
+    where: ew.type == "warning" and ew.key in ^unique_warns,
+        where: ^filters,
         select: %{
           type: ew.type,
           key: ew.key,
@@ -147,7 +198,8 @@ defmodule FrogWeb.Index do
 
     query =
       from ew in Frog.ErrorsWarnings,
-        where: ew.type == "error" and ew.key in ^unique_errs and ew.epoch > ^start,
+        where: ew.type == "error" and ew.key in ^unique_errs,
+        where: ^filters,
         select: %{
           type: ew.type,
           key: ew.key,
@@ -164,17 +216,17 @@ defmodule FrogWeb.Index do
 
     bucket_size = div(the_end - start, 20)
 
-    ew_grouped =
+    {ew_grouped, personas, actions} =
       ew_times
-      |> Enum.reduce(%{}, fn %{
-                               action: action,
-                               persona: persona,
-                               key: key,
-                               cnt: cnt,
-                               type: type,
-                               epoch: epoch
-                             },
-                             ret ->
+      |> Enum.reduce({%{}, MapSet.new(), MapSet.new()}, fn %{
+                                                             action: action,
+                                                             persona: persona,
+                                                             key: key,
+                                                             cnt: cnt,
+                                                             type: type,
+                                                             epoch: epoch
+                                                           },
+                                                           {ret, all_personas, all_actions} ->
         %{
           buckets: buckets,
           personas: personas,
@@ -211,12 +263,12 @@ defmodule FrogWeb.Index do
         bucket = Enum.min([div(epoch - start, bucket_size), 19])
         buckets = buckets |> put_elem(bucket, elem(buckets, bucket) + cnt)
 
-        ret
-        |> Map.put({key, type}, %{
-          buckets: buckets,
-          personas: personas |> MapSet.put(persona),
-          actions: actions |> MapSet.put(action)
-        })
+        {ret
+         |> Map.put({key, type}, %{
+           buckets: buckets,
+           personas: personas |> MapSet.put(persona),
+           actions: actions |> MapSet.put(action)
+         }), all_personas |> MapSet.put(persona), all_actions |> MapSet.put(action)}
       end)
 
     unique_ews =
@@ -237,13 +289,20 @@ defmodule FrogWeb.Index do
       |> Enum.sort_by(& &1.count, :desc)
 
     form_data = %{
-      "from" => from
+      "from" => start_from,
+      "persona" => params["persona"] || "_all",
+      "action" => params["action"] || "_all"
     }
+
+    form_personas = personas |> Enum.sort() |> Enum.map(fn pers -> {pers, pers} end)
+    form_actions = actions |> Enum.sort() |> Enum.map(fn act -> {act, act} end)
 
     socket =
       socket
       |> assign(:the_table, unique_ews)
       |> assign(:form_data, form_data)
+      |> assign(:form_personas, form_personas)
+      |> assign(:form_actions, form_actions)
 
     {:noreply, socket}
   end
