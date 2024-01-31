@@ -13,7 +13,7 @@ defmodule FrogWeb.Event do
   end
 
   @impl true
-  def handle_params(params, _url, socket) do
+  def handle_params(%{"id" => _, "index" => _, "type" => _} = params, _url, socket) do
     query =
       from e in Frog.Events,
         where: e.id == ^params["id"],
@@ -34,6 +34,32 @@ defmodule FrogWeb.Event do
     socket =
       socket
       |> assign(:type, params["type"])
+      |> assign(:trace, trace)
+      |> assign(:event, Jason.Formatter.pretty_print(event))
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_params(%{"id" => event_id}, _url, socket) do
+    query =
+      from e in Frog.Events,
+        where: e.id == ^event_id,
+        select: e.event
+
+    event = Frog.Repo.one(query)
+
+    query =
+      from ew in Frog.ErrorsWarnings,
+        where: ew.event_id == ^event_id,
+        select: {ew.item, ew.type},
+        limit: 1
+
+    {trace, type} = Frog.Repo.one(query)
+
+    socket =
+      socket
+      |> assign(:type, type)
       |> assign(:trace, trace)
       |> assign(:event, Jason.Formatter.pretty_print(event))
 

@@ -66,6 +66,7 @@ defmodule FrogWeb.Router do
     pipe_through :browser
 
     live "/", Index
+    live "/event/:id", Event
     live "/event/:id/:type/:index", Event
     live "/events/:id/:type/:index", Events
   end

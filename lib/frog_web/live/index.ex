@@ -14,54 +14,54 @@ defmodule FrogWeb.Index do
 
   def render_form(assigns) do
     ~H"""
-    <.form :let={f} for={%{}} as={:the_form}  phx-submit="form_submit" class="flex">
+    <.form :let={f} for={%{}} as={:the_form} phx-submit="form_submit" class="flex">
       <div class="form-field">
-      <%= label(f, :from, "Interval") %>
-      <%= select(
-        f,
-        :from,
-        [
-          {"15 minutes", 60 * 15},
-          {"1 hour", 60 * 60},
-          {"2 hours", 60 * 60 * 2},
-          {"3 hours", 60 * 60 * 3},
-          {"6 hours", 60 * 60 * 6},
-          {"12 hours", 60 * 60 * 12},
-          {"24 hours", 60 * 60 * 24},
-          {"2 days", 60 * 60 * 24 * 2},
-          {"1 week", 60 * 60 * 24 * 7},
-          {"2 weeks", 60 * 60 * 24 * 14}
-        ],
-        value: @form_data["from"]
-    ) %>
-        </div>
-        <div class="form-field">
-      <%= label(f, :persona, "Persona") %>
-      <%= select(
-        f,
-        :persona,
-        [
-          {"All", "_all"}
-          | @form_personas
-        ],
-        value: @form_data["persona"]
+        <%= label(f, :from, "Interval") %>
+        <%= select(
+          f,
+          :from,
+          [
+            {"15 minutes", 60 * 15},
+            {"1 hour", 60 * 60},
+            {"2 hours", 60 * 60 * 2},
+            {"3 hours", 60 * 60 * 3},
+            {"6 hours", 60 * 60 * 6},
+            {"12 hours", 60 * 60 * 12},
+            {"24 hours", 60 * 60 * 24},
+            {"2 days", 60 * 60 * 24 * 2},
+            {"1 week", 60 * 60 * 24 * 7},
+            {"2 weeks", 60 * 60 * 24 * 14}
+          ],
+          value: @form_data["from"]
         ) %>
-    </div>
-    <div class="form-field">
-      <%= label(f, :action, "Action") %>
-      <%= select(
-        f,
-        :action,
-        [
-          {"All", "_all"}
-          | @form_actions
-        ],
-        value: @form_data["action"]
+      </div>
+      <div class="form-field">
+        <%= label(f, :persona, "Persona") %>
+        <%= select(
+          f,
+          :persona,
+          [
+            {"All", "_all"}
+            | @form_personas
+          ],
+          value: @form_data["persona"]
         ) %>
-    </div>
-    <div class="form-field">
-      <%= submit("Go") %>
-    </div>
+      </div>
+      <div class="form-field">
+        <%= label(f, :action, "Action") %>
+        <%= select(
+          f,
+          :action,
+          [
+            {"All", "_all"}
+            | @form_actions
+          ],
+          value: @form_data["action"]
+        ) %>
+      </div>
+      <div class="form-field">
+        <%= submit("Go") %>
+      </div>
     </.form>
     """
   end
@@ -83,18 +83,18 @@ defmodule FrogWeb.Index do
         <tr :for={row <- @the_table}>
           <td><%= row.count %></td>
           <td>
-            <span data-title={ first_and_last(row) }>
-            <svg width="100" height="20">
-              <rect
-                :for={{bucket, index} <- Enum.with_index(row.time_buckets)}
-                width="5"
-                height={bucket * 20}
-                x={index * 5}
-                y={20 - bucket * 20}
-                style="fill:rgb(255,0,0);stroke-width:0"
-              />
-                  </svg>
-                  </span>
+            <span data-title={first_and_last(row)}>
+              <svg width="100" height="20">
+                <rect
+                  :for={{bucket, index} <- Enum.with_index(row.time_buckets)}
+                  width="5"
+                  height={bucket * 20}
+                  x={index * 5}
+                  y={20 - bucket * 20}
+                  style="fill:rgb(255,0,0);stroke-width:0"
+                />
+              </svg>
+            </span>
           </td>
           <td>
             <span :for={persona <- row.personas}><%= persona %></span>
@@ -185,7 +185,7 @@ defmodule FrogWeb.Index do
 
     w_query =
       from ew in Frog.ErrorsWarnings,
-    where: ew.type == "warning" and ew.key in ^unique_warns,
+        where: ew.type == "warning" and ew.key in ^unique_warns,
         where: ^filters,
         select: %{
           type: ew.type,
